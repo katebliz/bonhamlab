@@ -1,0 +1,13 @@
+There are a bunch of great tutorials and references for R on the internet. Some of my favorites are:
+- The University of Washington's short courses, including video, on R (materials are at: http://faculty.washington.edu/kenrice/rintro/)
+- The NIH Library has some materials from their R courses (there are a few different classes here: http://nihlibrary.campusguides.com/dataservices)
+- There are also some great etextbooks and reference sites, including:
+  - QuickR (http://www.statmethods.net/index.html)
+  - UCLA's Learning Resources (http://www.ats.ucla.edu/stat/r/)
+  - A resource for R tutorials (http://ww2.coastal.edu/kingw/statistics/R-tutorials/)
+  - And possibly the best, the R Cookbook (http://www.cookbook-r.com/)
+- If you're more into print materials, the best I've found are:
+  - The R Cookbook and R Graphics Cookbook
+  - Andy Field's Discovering Statistics Using R
+
+If you come across any other resources you find particularly useful, please add them to the list!
