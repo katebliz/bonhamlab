@@ -1,0 +1,211 @@
+#### Clustering on Severity ####
+#### Preliminary Setup ####
+# load packages
+library(plyr)
+library(cluster)
+library(fpc)
+library(ggdendro)
+library(dendextend)
+library(MASS)
+library(Hmisc)
+library(ggplot2)
+
+# set working directory
+setwd("Z:/KBlizinsky/Bonham Lab/SC Sx Severity")
+
+# read in data
+sev.master <- read.csv("severity2.csv", header = TRUE)
+sev.master <- na.omit(sev.master) # remove incomplete cases
+
+# Normalize data
+severity <- sev.master[,-1]
+rownames(severity) <- sev.master$patID
+
+#medians <- apply(severity, 2, median)
+#mads <- apply(severity, 2, mad)
+#severity <- as.data.frame(scale(severity, center = medians, scale = mads))
+
+#### SummarySE Function ####
+# Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
+# data: a data frame.
+# measurevar: the name of a column that contains the variable to be summariezed
+# groupvars: a vector containing names of columns that contain grouping variables
+# na.rm: a boolean that indicates whether to ignore NA's
+# conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr)
+  
+  # New version of length which can handle NA's: if na.rm==T, don't count them
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  
+  # This does the summary. For each group's data frame, return a vector with
+  # N, mean, and sd
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  
+  # Rename the "mean" column    
+  datac <- rename(datac, c("mean" = measurevar))
+  
+  datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+  
+  # Confidence interval multiplier for standard error
+  # Calculate t-statistic for confidence interval: 
+  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  
+  return(datac)
+}
+
+#### Analyze and Plot Severity Score using Linear Regression ####
+fit <- lm(qol_score~bu_score, data = severity)
+summary(fit)
+
+g.severity <- ggplot(data = severity, aes(x = bu_score, y = qol_score))+
+  geom_point()+
+  geom_smooth(method = lm, se = FALSE)+
+  xlab("Clinical Severity Score")+
+  ylab("Quality of Life Score")+
+  ggtitle("Clinical-Quality of Life Score Correlation")+
+  theme_bw()
+g.severity
+
+#### Heirarchical Clustering ####
+#### Clinical Severity Score (Clin) ####
+# create the dissimilarity matrix
+dist.clin <- dist(severity$bu_score, method = "euclidean")
+summary(dist.clin)
+
+# compute heirarchical cluster analysis (complete linkage method)
+h.clin <- hclust(dist.clin, method = "complete")
+print(h.clin)
+
+# see the steps in the cluster analysis
+h.clin$merge
+
+# check on the appropriate number of clusters, according to the analysis
+ht.clin <- h.clin$height
+ht.clin2 <- c(0, ht.clin[-length(ht.clin)])
+which.max(round(ht.clin-ht.clin2,3))
+
+clin.2 <- cutree(h.clin, 2)
+#clin.3 <- cutree(h.clin, 3)
+
+#### Quality of Life (QoL) ####
+dist.qol <- dist(severity$qol_score, method = "euclidean")
+summary(dist.qol)
+
+h.qol <- hclust(dist.qol, method = "complete")
+print(h.qol)
+
+h.qol$merge
+
+ht.qol <- h.qol$height
+ht.qol2 <- c(0, ht.qol[-length(ht.qol)])
+which.max(round(ht.qol-ht.qol2, 3))
+
+#qol.2 <- cutree(h.qol, 2)
+qol.3 <- cutree(h.qol, 3)
+
+#### Clin-QoL Clusters ####
+dist.all <- dist(severity, method = "euclidean")
+summary(dist.all)
+
+h.all <- hclust(dist.all, method = "complete")
+print(h.all)
+
+h.all$merge
+
+ht.all <- h.all$height
+ht.all2 <- c(0, ht.all[-length(ht.all)])
+which.max(round(ht.all-ht.all2, 3))
+
+#all.2 <- cutree(h.all, 2)
+all.3 <- cutree(h.all, 3)
+
+#### Compare Cluster Memberships ####
+severity <- as.data.frame(cbind(severity, clin.2, qol.3, all.3))
+write.csv(severity, "severity_check.csv")
+
+# Get summary statistics 
+# Measure means for each group
+clin.sum <- summarySE(data = severity, measurevar = "bu_score", groupvars = "clin.2")
+write.csv(clin.sum, "clin_sum.csv")
+t.clin <- t.test(bu_score~clin.2, severity)
+
+qol.sum <- summarySE(data = severity, measurevar = "qol_score", groupvars = "qol.3")
+write.csv(qol.sum, "qol_summary")
+aov.qol <- aov(qol_score~qol.3, severity)
+summary(aov.qol)
+
+# Alternate measure means for each group
+clin.qol.sum <- summarySE(data = severity, measurevar = "qol_score", groupvars = "clin.2")
+t.clin.2 <- t.test(qol_score~clin.2, severity)
+
+qol.clin.sum <- summarySE(data = severity, measurevar = "bu_score", groupvars = "qol.3")
+aov.qol.2 <- aov(bu_score~qol.3, severity)
+summary(aov.qol.2)
+
+# Create a table of cluster membership in the 2-group clinical and 3-group quality of life analyses
+c2q3 <- table(clin.2, qol.3)
+
+# Run the chi-square test to determine whether these two measure modalities are independent of one another
+chisq.test(c2q3)
+
+#### Plot Basic Dendrograms ####
+plot(h.clin,
+     main = "Clinical Severity Score",
+     hang = -1,
+     labels = labels.sev)
+
+plot(h.qol,
+     main = "Quality of Life",
+     hang = -1,
+     labels = labels.sev)
+
+plot(h.all,
+     main = "Clinical Severity and Quality of Life",
+     hang = -1,
+     labels = labels.sev)
+
+#### Plot Fancy Dendrograms ####
+#### Clinical Severity Scores ####
+dend.clin2 <- severity$bu_score %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "complete") %>%
+  as.dendrogram %>%
+  set("labels_col", value = c("#ff6b6b", "#556270"), k = 2) %>%
+  plot(main = "Clinical Severity")
+
+abline(h = 3, lty = 2)
+
+#### Quality of Life Measures ####
+dend.qol3 <- severity$qol_score %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "complete") %>%
+  as.dendrogram %>%
+  set("labels_col", value = c("#ff6b6b", "#00878a", "#556270"), k = 3) %>%
+  plot(main = "Quality of Life")
+
+abline(h = 0.35, lty = 2)
+
+#### All Measures ####
+dend.all3 <- severity %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "complete") %>%
+  as.dendrogram %>%
+  set("labels_col", value = c("#ff6b6b", "#00878a", "#556270"), k = 3) %>%
+  plot(main = "Clinical Severity and Quality of Life")
+
+abline(h = 0.55, lty = 2)
