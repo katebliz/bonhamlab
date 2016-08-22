@@ -1,0 +1,13 @@
+Here are the scripts we use to do a QIIME run. They are written so that you just submit flags from the command prompt. However, this won’t work for you because you are not using our servers. You will have to use it as a guide. The python script is a very basic size filtering that also gives you a read length summary file for later analysis. The R scripts are scripts we use to make sure we didn’t miss anything in size filtering and then to figure out what subsampling depth you want to go for.
+
+Unfortunately, the post-QIIME analysis scripts are very project dependent. There aren’t really standard pipelines. I am just going to throw in a bunch of scripts I wrote for my recent analysis of diabetic foot ulcers (DFU). That way you will be able to see a lot of different things. 
+
+I have a script that formats my metadata (dfu_metadata.R). The environment created by that is used during dfu_load_data.R to bring in the OTU table and other stuff generated in QIIME. Those two serve as the basis for all subsequent analyses. Feel free to ask any questions; my code is a little convoluted and rushed at times.
+
+-- 
+Michael A Loesche
+MD/PhD Candidate, CD6
+Perelman School of Medicine
+University of Pennsylvania
+loesche@med.upenn.edu
+(956) 739 - 1164
