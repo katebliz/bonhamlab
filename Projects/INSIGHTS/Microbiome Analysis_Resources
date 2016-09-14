@@ -1,0 +1,10 @@
+http://h3abionet.org/tools-and-resources/sops/16s-rrna-diversity-analysis
+^^the above provides a schematic workflow for 16S rRNA analysis--if you hover your pointer over each box in the pipeline, 
+it gives one a summary of each step
+http://qiime.org/1.2.1/tutorials/tutorial.html
+^^pretty comprehensive tutorial explaining how to use qiime 
+http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3105689/
+^^neat journal article providing an assessment of UniFrac (the distance metric utilized in the beta analysis component) and the 
+utility of jacknifing as a sort of check for UniFrac 
+
+Please don't hesistate to add any resources you think may be helpful! :) 
