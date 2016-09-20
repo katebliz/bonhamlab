@@ -1,0 +1,63 @@
+Hi Kate, 
+
+I zipped up the whole folder containing the analysis results.  To open the contents, just run tar -zxvf Insights.tar.gz (it will be about 25 GB when you unzip it).   
+From the analysis, you had 12,526,629 total sequences as input.  We filtered out 2,105,109 sequences that were not in the specified size range (490 nt to 600 nt), and retained 10,421,520 sequences for analysis. 
+After OTU picking, there were 48,267 total OTUs.  After removing singletons and OTUs in less than 2 samples, there were 28,976 OTUs.  Sort of based on insights_reads_per_sample_and_collectors_curve_plots.pdf, I set a subsampling threshold of 2500 to try to retain most of your samples (this takes you from 271 to 258 samples).  You might want to look at this more in depth and see which samples have the lowest sequencing counts and which are being removed.  You can always rerun QiimeRunDiversity.sh with a new subsampling value (its a pretty fast step and if you don’t have qiime running on your server, just send me the new subsampling number and I can quickly re-run it for you— it seriously only takes a few minutes). 
+Below is just information on the attached files.  Please let me know if there is anything else I can do to help! 
+
+Thanks, 
+
+Jackie 
+
+
+The two main commands that generated this data are: 
+
+bash QiimeRunOtus.sh -j insights -m Keisha_samples.tsv -i insights.fna -w /project/grice_meiselj/Insights/ -s SCISUB -d open -v V1V3 
+
+# j is the job id, m is the mapping file, i is the input fasta file, w is the working directory, s is the server we used, d is the OTU picking method we used, and v is the version which is the hyper variable region sequenced 
+
+bash QiimeRunDiversity.sh -j insights -w /project/grice_meiselj/insights/ -o insights_otu_table_no_singletons.biom -r alignment/insights_rep_set_no_singletons_aligned.fasta -c 2500 -s   
+
+# j is the job id, w is the working directory, o is the OTU table, r is the aligned rep set, c is the minimum number of reads required per sample, s says to subsample to an even depth for diversity measurements 
+
+The Insights output folder contains the following: 
+
+Keisha_samples.tsv— the mapping file 
+insights.fna — the initial fasta file 
+the folder samples_per_sequencing run, which contains mapping files for all of the samples split by the different sequencing runs (used to generate insights.fna) 
+
+QiimeRunOtus.sh- the first script that we run 
+
+## The files used for summarizing sequencing length and filtering 
+Summarize_FASTA_size.pl- a perl script called by QiimeRunOtus.sh that summarizes the read lengths of all of the sequences in the input fasta file 
+insights_specific_raw_SizeStats.txt - the output from Summarize_FASTA_size.pl 
+ReadLengthAnalysis.R- plots the output from Summarize_FASTA_size.pl in insights_read_length_density_plots.pdf 
+Filter_FASTA_Size.pl- a perl script called by QiimeRunOtus.sh that filters out reads that don’t fall within the specified length range (in our case 490-600) 
+insights_specific_raw.fna, insights_specific_raw_discarded.fna, insights_size_filtered.fna are all generated during this step and the final file we use for downstream analysis is insights_size_filtered.fna 
+
+## Picking OTUs 
+All of the output is stored in the folder otu_map 
+From the otu_map output, we use the files ./otu_map/uclust_assigned_taxonomy/rep_set_tax_assignments.txt to identify unclassified and cyanobacteria contaminants and remove them from ./otu_map/final_otu_map_mc2.txt 
+This generates insights_otu_table.biom   
+We then filter out singletons and OTUs in less than two samples, generating insights_otu_table_no_singletons.biom and make a new rep set, insights_rep_set_no_singletons.fna 
+For phylogenetic purposes, we perform a final alignment of the OTUs, using insights_rep_set_no_singletons.fna and generating the folder alignment 
+
+## Rarefaction 
+In this step, the folder rarefactions is generated— the final output we use for plotting is in rarefactions/collated_alpha, and we plot this using SampleQualityandRarefaction.R, which generates insights_reads_per_sample_and_collectors_curve_plots.pdf 
+
+QiimeRunDiversity.sh- the second script that we run 
+
+This script generates any of the subsampled OTU tables and rep sets 
+It generates the abundance_relative folder, which contains the assigned taxonomy on the filtered, subsampled OTU table 
+It also generates the folders alpha and beta, which contain all of the diversity output 
+
+Error and Output Files 
+
+The files that end in .err and .out are the error and output files from each time we ran one of the two main commands. 
+
+insights_qiime_run_otus.err and insights_qiime_run_otus.out give the output/errors for the first time we ran the script QiimeRunOtus.sh, which works up until the OTU picking step 
+insights_qiime_run_otus2.err and insights_qiime_run_otus2.out give the output/errors for the second time, when only the OTU picking step worked for (our initial script was not set up for pick open reference otus, so some of the output file names were different and caused it to fail downstream) 
+insights_qiime_run_otus3.err and insights_qiime_run_otus3.out give the output/errors for the third time, which works up to alpha diversity (it failed because the server can't handle parallel processes) 
+insights_qiime_run_otus4.err and insights_qiime_run_otus4.out give the output/errors for the fourth time, which works from rarefaction to the end of the script (the error at the end is because I didn’t have an R module installed— I manually installed it an reran the Rscript line) 
+
+insights_qiime_run_diversity.err and insights_qiime_run_diversity.out give the output/errors for when we ran the script QiimeRunDiversity.sh 
